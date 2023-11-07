@@ -3,8 +3,9 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Create an SQLite database in memory for demonstration
-engine = create_engine('sqlite:///:memory:')
+# Create a database connection (replace with your actual database URL)
+engine = create_engine('sqlite:///my_database.db')  # Use a persistent database
+
 Base = declarative_base()
 
 # Define the Task model
@@ -14,73 +15,100 @@ class Task(Base):
     title = Column(String)
     description = Column(String)
 
-# Create the table in the database
-Base.metadata.create_all(engine)
+# Create the table in the database (with error handling for existing table)
+try:
+    Base.metadata.create_all(engine)
+except Exception as e:
+    print(f"Error creating table: {e}")
 
-# Function to create a new task
+# Function to create a new task with error handling
 def create_task(title, description):
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    new_task = Task(title=title, description=description)
-    session.add(new_task)
-    session.commit()
-    session.close()
+    try:
+        new_task = Task(title=title, description=description)
+        session.add(new_task)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        print(f"Error creating task: {e}")
+    finally:
+        session.close()
 
-# Function to read tasks
+# Function to read tasks with error handling
 def read_tasks():
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    tasks = session.query(Task).all()
-    session.close()
+    try:
+        tasks = session.query(Task).all()
+    except Exception as e:
+        print(f"Error reading tasks: {e}")
+        tasks = []
+
+    finally:
+        session.close()
 
     return tasks
 
-# Function to update a task
+# Function to update a task with error handling
 def update_task(task_id, new_title, new_description):
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    task_to_update = session.query(Task).filter_by(id=task_id).first()
-    if task_to_update:
-        task_to_update.title = new_title
-        task_to_update.description = new_description
-        session.commit()
+    try:
+        task_to_update = session.query(Task).filter_by(id=task_id).first()
+        if task_to_update:
+            task_to_update.title = new_title
+            task_to_update.description = new_description
+            session.commit()
+        else:
+            print(f"Task with ID {task_id} not found.")
+    except Exception as e:
+        session.rollback()
+        print(f"Error updating task: {e}")
+    finally:
+        session.close()
 
-    session.close()
-
-# Function to delete a task
+# Function to delete a task with error handling
 def delete_task(task_id):
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    task_to_delete = session.query(Task).filter_by(id=task_id).first()
-    if task_to_delete:
-        session.delete(task_to_delete)
-        session.commit()
-
-    session.close()
+    try:
+        task_to_delete = session.query(Task).filter_by(id=task_id).first()
+        if task_to_delete:
+            session.delete(task_to_delete)
+            session.commit()
+        else:
+            print(f"Task with ID {task_id} not found.")
+    except Exception as e:
+        session.rollback()
+        print(f"Error deleting task: {e}")
+    finally:
+        session.close()
 
 # Example usage of the functions
 if __name__ == "__main__":
-    # Create tasks
+    # Create tasks with error handling
     create_task("Task 1", "This is the first task")
     create_task("Task 2", "This is the second task")
 
-    # Read tasks
+    # Read tasks with error handling
     tasks = read_tasks()
     for task in tasks:
         print(f"Task {task.id}: {task.title} - {task.description}")
 
-    # Update a task
+    # Update a task with error handling
     update_task(1, "Updated Task 1", "This task has been updated")
 
-    # Delete a task
+    # Delete a task with error handling
     delete_task(2)
 
-    # Read tasks after the update and delete
+    # Read tasks after the update and delete with error handling
     tasks = read_tasks()
     for task in tasks:
         print(f"Task {task.id}: {task.title} - {task.description}")
 
+# Note: In a real-world project, you would need to handle more complex structures, validate input, and implement more robust error handling.
