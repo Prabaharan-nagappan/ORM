@@ -1,5 +1,5 @@
 # Import necessary modules
-from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String, or_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -46,11 +46,27 @@ def read_tasks():
     except Exception as e:
         print(f"Error reading tasks: {e}")
         tasks = []
-
     finally:
         session.close()
 
     return tasks
+
+# Function to search tasks by title or description with error handling
+def search_tasks(search_query):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    try:
+        search_results = session.query(Task).filter(
+            or_(Task.title.ilike(f'%{search_query}%'), Task.description.ilike(f'%{search_query}%'))
+        ).all()
+    except Exception as e:
+        print(f"Error searching tasks: {e}")
+        search_results = []
+    finally:
+        session.close()
+
+    return search_results
 
 # Function to update a task with error handling
 def update_task(task_id, new_title, new_description):
@@ -98,6 +114,13 @@ if __name__ == "__main__":
     # Read tasks with error handling
     tasks = read_tasks()
     for task in tasks:
+        print(f"Task {task.id}: {task.title} - {task.description}")
+
+    # Search for tasks with error handling
+    search_query = "task"
+    search_results = search_tasks(search_query)
+    print(f"Search results for '{search_query}':")
+    for task in search_results:
         print(f"Task {task.id}: {task.title} - {task.description}")
 
     # Update a task with error handling
